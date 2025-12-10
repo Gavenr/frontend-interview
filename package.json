@@ -1,0 +1,17 @@
+{
+  "name": "frontend-interview",
+  "version": "1.0.0",
+  "description": "前端工程师面试宝典",
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "keywords": ["frontend", "interview", "vue", "react"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  }
+}
