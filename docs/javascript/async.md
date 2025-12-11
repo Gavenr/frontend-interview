@@ -1376,3 +1376,383 @@ pool.all(tasks).then(({ results, errors, success }) => {
 
 #### 面试回答模板
 "Promise 并发控制的核心思路是维护一个执行队列和计数器,控制同时执行的 Promise 数量。具体实现时,我会创建一个 executing 数组来存储正在执行的 Promise,当数组长度达到限制时,使用 Promise.race 等待其中任意一个完成,然后再继续执行下一个任务。这样可以避免同时发起大量请求导致浏览器连接数超限或服务器压力过大。实际项目中我会封装成一个 PromisePool 类,提供更灵活的配置,比如支持失败重试、错误收集等功能。这个技术在批量上传文件、批量请求接口、爬虫限流等场景都很常用。"
+
+---
+
+### Q5: 说说 Event Loop（事件循环）
+
+#### 一句话答案
+Event Loop 是 JavaScript 实现异步的核心机制,它不断从任务队列中取出任务执行,宏任务和微任务交替执行。
+
+#### 详细解答
+
+**执行顺序**: 同步代码 → 微任务队列（全部） → 宏任务队列（一个） → 微任务队列 → 宏任务...
+
+```javascript
+// 宏任务 (Macro Task)
+// setTimeout, setInterval, setImmediate, I/O, UI rendering, requestAnimationFrame
+
+// 微任务 (Micro Task)
+// Promise.then/catch/finally, MutationObserver, queueMicrotask, process.nextTick(Node)
+
+console.log('1');  // 同步
+
+setTimeout(() => {
+  console.log('2');  // 宏任务
+  Promise.resolve().then(() => console.log('3'));  // 微任务
+}, 0);
+
+Promise.resolve().then(() => {
+  console.log('4');  // 微任务
+  setTimeout(() => console.log('5'), 0);  // 宏任务
+});
+
+console.log('6');  // 同步
+
+// 输出: 1 → 6 → 4 → 2 → 3 → 5
+```
+
+**执行流程图**:
+```
+┌─────────────────────────────────┐
+│         调用栈 (Call Stack)      │
+│   执行同步代码,遇到异步放入队列    │
+└──────────────┬──────────────────┘
+               ↓
+┌─────────────────────────────────┐
+│    微任务队列 (Microtask Queue)  │
+│  Promise.then, queueMicrotask   │
+│       ← 优先级高,执行完所有       │
+└──────────────┬──────────────────┘
+               ↓
+┌─────────────────────────────────┐
+│    宏任务队列 (Macrotask Queue)  │
+│  setTimeout, setInterval, I/O   │
+│       ← 每次取一个执行           │
+└─────────────────────────────────┘
+```
+
+#### 经典面试题
+
+```javascript
+// 题目1: 输出顺序
+async function async1() {
+  console.log('async1 start');
+  await async2();
+  console.log('async1 end');
+}
+
+async function async2() {
+  console.log('async2');
+}
+
+console.log('script start');
+
+setTimeout(() => {
+  console.log('setTimeout');
+}, 0);
+
+async1();
+
+new Promise(resolve => {
+  console.log('promise1');
+  resolve();
+}).then(() => {
+  console.log('promise2');
+});
+
+console.log('script end');
+
+// 答案:
+// script start → async1 start → async2 → promise1 → script end
+// → async1 end → promise2 → setTimeout
+```
+
+#### 面试回答模板
+"Event Loop 是 JS 实现异步的核心机制。JS 是单线程的,通过事件循环来处理异步任务。执行顺序是:先执行同步代码,然后清空微任务队列(Promise.then 等),再执行一个宏任务(setTimeout 等),然后又清空微任务,如此循环。微任务优先级高于宏任务,每次宏任务执行完都会检查并执行所有微任务。"
+
+---
+
+### Q6: async/await 如何进行错误处理？
+
+#### 一句话答案
+使用 try/catch 捕获错误,或者在 await 后面 .catch(),也可以封装统一的错误处理函数。
+
+#### 详细解答
+
+```javascript
+// 方式1: try/catch（推荐）
+async function fetchData() {
+  try {
+    const res = await fetch('/api/data');
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('请求失败:', error);
+    return null;
+  }
+}
+
+// 方式2: await 后 .catch()
+async function fetchData2() {
+  const data = await fetch('/api/data')
+    .then(r => r.json())
+    .catch(err => {
+      console.error(err);
+      return null;
+    });
+  return data;
+}
+
+// 方式3: 封装统一处理函数（Go 风格）
+async function to(promise) {
+  try {
+    const data = await promise;
+    return [null, data];
+  } catch (err) {
+    return [err, null];
+  }
+}
+
+// 使用
+async function main() {
+  const [err, data] = await to(fetch('/api/data').then(r => r.json()));
+  if (err) {
+    console.error('出错了:', err);
+    return;
+  }
+  console.log('成功:', data);
+}
+
+// 方式4: 高阶函数包装
+const withErrorHandling = fn => async (...args) => {
+  try {
+    return await fn(...args);
+  } catch (error) {
+    console.error('Error:', error);
+    // 可以上报错误、显示提示等
+    throw error;
+  }
+};
+
+const safeFetch = withErrorHandling(async url => {
+  const res = await fetch(url);
+  return res.json();
+});
+```
+
+---
+
+### Q7: 如何实现 Promise 的超时控制？
+
+#### 详细解答
+
+```javascript
+// 方式1: Promise.race 实现超时
+function withTimeout(promise, ms) {
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Timeout')), ms);
+  });
+  return Promise.race([promise, timeout]);
+}
+
+// 使用
+withTimeout(fetch('/api/data'), 5000)
+  .then(res => res.json())
+  .catch(err => console.error(err.message));
+
+// 方式2: 可取消的超时（使用 AbortController）
+async function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ms);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+}
+
+// 方式3: 支持重试的超时请求
+async function fetchWithRetry(url, options = {}) {
+  const { timeout = 5000, retries = 3 } = options;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fetchWithTimeout(url, timeout);
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      console.log(`重试第 ${i + 1} 次...`);
+    }
+  }
+}
+```
+
+---
+
+### Q8: Generator 函数与异步编程
+
+#### 一句话答案
+Generator 是 ES6 引入的可暂停执行的函数,配合 Promise 可以实现类似 async/await 的效果,是 async/await 的前身。
+
+#### 详细解答
+
+```javascript
+// Generator 基础
+function* gen() {
+  console.log('开始');
+  const a = yield 1;
+  console.log('a:', a);
+  const b = yield 2;
+  console.log('b:', b);
+  return 3;
+}
+
+const g = gen();
+console.log(g.next());     // 开始, { value: 1, done: false }
+console.log(g.next('A'));  // a: A, { value: 2, done: false }
+console.log(g.next('B'));  // b: B, { value: 3, done: true }
+
+// Generator + Promise 实现异步
+function* asyncGen() {
+  const res1 = yield fetch('/api/1').then(r => r.json());
+  console.log('res1:', res1);
+  const res2 = yield fetch('/api/2').then(r => r.json());
+  console.log('res2:', res2);
+  return 'done';
+}
+
+// 自动执行器（简化版 co 库）
+function co(gen) {
+  return new Promise((resolve, reject) => {
+    const g = gen();
+
+    function next(data) {
+      const { value, done } = g.next(data);
+      if (done) return resolve(value);
+      Promise.resolve(value).then(next, reject);
+    }
+
+    next();
+  });
+}
+
+// 使用
+co(asyncGen).then(result => console.log(result));
+
+// 对比: 现在我们直接用 async/await
+async function asyncFn() {
+  const res1 = await fetch('/api/1').then(r => r.json());
+  const res2 = await fetch('/api/2').then(r => r.json());
+  return 'done';
+}
+```
+
+#### 面试回答模板
+"Generator 函数可以暂停和恢复执行,通过 yield 关键字可以把异步代码写成同步的样子。配合一个自动执行器(如 co 库),就能实现类似 async/await 的效果。实际上 async/await 就是 Generator + 自动执行器的语法糖。现在开发中我们直接用 async/await 就好,但了解 Generator 有助于理解 async/await 的原理。"
+
+---
+
+### Q9: 宏任务和微任务有哪些？执行优先级？
+
+#### 详细解答
+
+| 类型 | 任务 | 备注 |
+|------|------|------|
+| **微任务** | Promise.then/catch/finally | 最常用 |
+| | queueMicrotask | 手动添加微任务 |
+| | MutationObserver | DOM 变化监听 |
+| | process.nextTick | Node.js 专属,优先级最高 |
+| **宏任务** | setTimeout/setInterval | 定时器 |
+| | setImmediate | Node.js 专属 |
+| | I/O 操作 | 文件读写、网络请求 |
+| | UI rendering | 浏览器渲染 |
+| | requestAnimationFrame | 动画帧 |
+| | MessageChannel | 消息通道 |
+
+**优先级**: 同步代码 > process.nextTick > 微任务 > 宏任务
+
+```javascript
+// Node.js 中的完整顺序
+console.log('sync');
+
+process.nextTick(() => console.log('nextTick'));
+
+Promise.resolve().then(() => console.log('promise'));
+
+setImmediate(() => console.log('immediate'));
+
+setTimeout(() => console.log('timeout'), 0);
+
+// 输出: sync → nextTick → promise → timeout → immediate
+// (timeout 和 immediate 顺序可能因情况而异)
+```
+
+---
+
+### Q10: 手写 Promise.allSettled
+
+#### 详细解答
+
+```javascript
+Promise.myAllSettled = function(promises) {
+  return new Promise(resolve => {
+    const results = [];
+    let count = 0;
+    const len = promises.length;
+
+    if (len === 0) return resolve([]);
+
+    promises.forEach((p, i) => {
+      Promise.resolve(p)
+        .then(value => {
+          results[i] = { status: 'fulfilled', value };
+        })
+        .catch(reason => {
+          results[i] = { status: 'rejected', reason };
+        })
+        .finally(() => {
+          count++;
+          if (count === len) resolve(results);
+        });
+    });
+  });
+};
+
+// 测试
+Promise.myAllSettled([
+  Promise.resolve(1),
+  Promise.reject('err'),
+  Promise.resolve(3)
+]).then(console.log);
+// [
+//   { status: 'fulfilled', value: 1 },
+//   { status: 'rejected', reason: 'err' },
+//   { status: 'fulfilled', value: 3 }
+// ]
+```
+
+---
+
+## 总结
+
+### 异步编程发展历程
+```
+回调函数 → Promise → Generator + co → async/await
+```
+
+### 核心要点速记
+
+| 概念 | 要点 |
+|------|------|
+| Promise 状态 | pending → fulfilled/rejected,不可逆 |
+| 微任务 vs 宏任务 | 微任务优先,每轮宏任务后清空微任务 |
+| async/await | 语法糖,返回 Promise,await 后是微任务 |
+| 错误处理 | try/catch 或 .catch() |
+| 并发控制 | Promise.all/race/allSettled + 限流池 |

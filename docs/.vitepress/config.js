@@ -87,6 +87,7 @@ export default defineConfig({
             { text: 'HTTP/HTTPS', link: '/network/http' },
             { text: 'TCP/UDP', link: '/network/tcp-udp' },
             { text: 'WebSocket', link: '/network/websocket' },
+            { text: 'SSE', link: '/network/sse' },
             { text: '跨域解决方案', link: '/network/cors' },
             { text: '网络安全', link: '/network/security' }
           ]
@@ -215,7 +216,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com' }
+      { icon: 'github', link: 'https://github.com/Gavenr/frontend-interview' }
     ],
 
     search: {

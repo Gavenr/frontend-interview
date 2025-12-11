@@ -11,7 +11,7 @@ hero:
       link: /javascript/
     - theme: alt
       text: GitHub
-      link: https://github.com
+      link: https://github.com/Gavenr/frontend-interview
 
 features:
   - icon: 📝

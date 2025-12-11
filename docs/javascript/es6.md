@@ -2685,3 +2685,35 @@ for (const value of iterable) {
 > 生成器是 ES6 提供的一种特殊函数，用 function* 声明，内部可以用 yield 暂停执行。调用生成器函数不会立即执行，而是返回一个迭代器对象，每次调用 next 才执行到下一个 yield。生成器简化了迭代器的实现，也是 async/await 的底层原理。
 >
 > 可迭代对象是实现了 Symbol.iterator 方法的对象，数组、字符串、Set、Map 都是可迭代对象，可以用 for...of 遍历。我们也可以给自定义对象实现 Symbol.iterator，让它变成可迭代对象。"
+
+---
+
+## ES6+ 特性速查表
+
+### 按版本分类
+
+| 版本 | 年份 | 核心特性 |
+|------|------|----------|
+| ES6 | 2015 | let/const、箭头函数、解构、模板字符串、Promise、Class、Module、Symbol、Set/Map |
+| ES7 | 2016 | includes()、指数运算符 ** |
+| ES8 | 2017 | async/await、Object.values/entries、padStart/padEnd |
+| ES9 | 2018 | Rest/Spread 属性、for await...of、Promise.finally |
+| ES10 | 2019 | flat/flatMap、Object.fromEntries、trimStart/trimEnd、可选 catch |
+| ES11 | 2020 | 可选链 ?.、空值合并 ??、BigInt、Promise.allSettled、globalThis |
+| ES12 | 2021 | ||= &&= ??=、String.replaceAll、Promise.any、WeakRef |
+| ES13 | 2022 | at()、Object.hasOwn、类静态块、顶层 await、正则 /d |
+| ES14 | 2023 | findLast/findLastIndex、Hashbang、WeakMap Symbol 键 |
+
+### 高频面试考点
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    ES6+ 高频考点                        │
+├─────────────────────────────────────────────────────────┤
+│  let/const/var 区别 ✓   箭头函数 this ✓   解构赋值 ✓   │
+│  Promise 原理 ✓✓        async/await ✓✓    Class 语法 ✓ │
+│  ES Module vs CJS ✓✓    Proxy/Reflect ✓✓  Symbol ✓     │
+│  Set/Map/WeakMap ✓      可选链/空值合并 ✓  扩展运算符 ✓ │
+└─────────────────────────────────────────────────────────┘
+✓ 常考  ✓✓ 高频重点
+```

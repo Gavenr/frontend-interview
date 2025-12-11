@@ -461,6 +461,540 @@ console.log(1 / '2');
 
 ---
 
+## 5. 高频面试题
+
+### Q1: typeof 和 instanceof 的区别？
+
+#### 一句话答案
+typeof 返回类型字符串，适合判断基本类型；instanceof 检查原型链，适合判断对象的具体类型。
+
+#### 详细解答
+
+| 特性 | typeof | instanceof |
+|------|--------|------------|
+| 返回值 | 类型字符串 | 布尔值 |
+| 适用场景 | 基本类型 | 引用类型（对象） |
+| 原理 | 检查值的内部标记 | 检查原型链 |
+| null | 返回 'object'（bug） | 返回 false |
+| 基本类型包装 | 正确返回 | 返回 false |
+| 跨 iframe | 无问题 | 有问题 |
+
+```javascript
+// typeof 示例
+typeof 123          // 'number'
+typeof '123'        // 'string'
+typeof true         // 'boolean'
+typeof undefined    // 'undefined'
+typeof null         // 'object' ❌
+typeof Symbol()     // 'symbol'
+typeof 123n         // 'bigint'
+typeof {}           // 'object'
+typeof []           // 'object' - 无法区分数组
+typeof function(){} // 'function'
+
+// instanceof 示例
+[] instanceof Array        // true
+[] instanceof Object       // true
+{} instanceof Object       // true
+function(){} instanceof Function  // true
+
+// instanceof 的问题
+'str' instanceof String    // false - 基本类型
+123 instanceof Number      // false - 基本类型
+new String('str') instanceof String  // true - 包装对象
+
+// 手写 instanceof
+function myInstanceof(obj, constructor) {
+  // 基本类型直接返回 false
+  if (obj === null || typeof obj !== 'object') {
+    return false;
+  }
+
+  let proto = Object.getPrototypeOf(obj);
+
+  while (proto !== null) {
+    if (proto === constructor.prototype) {
+      return true;
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+
+  return false;
+}
+```
+
+#### 面试回答模板
+
+> "typeof 和 instanceof 是两种不同的类型判断方式。typeof 返回一个表示类型的字符串，适合判断基本类型，但它有个历史遗留的 bug，typeof null 返回 'object'，而且它无法区分数组和普通对象，都返回 'object'。
+>
+> instanceof 用来判断对象是否是某个构造函数的实例，它的原理是检查右边构造函数的 prototype 是否在左边对象的原型链上。它的问题是对基本类型无效，而且在跨 iframe 时会有问题，因为每个 iframe 有自己的 Array 构造函数。
+>
+> 最准确的类型判断方法是 Object.prototype.toString.call()，它能正确识别所有类型，包括 null、数组、Date、RegExp 等。"
+
+---
+
+### Q2: null 和 undefined 的区别？
+
+#### 一句话答案
+undefined 表示变量已声明但未赋值，null 表示空对象指针，是主动设置的"空值"。
+
+#### 详细解答
+
+| 特性 | undefined | null |
+|------|-----------|------|
+| 含义 | 未定义/未赋值 | 空值/空对象引用 |
+| typeof 结果 | 'undefined' | 'object' |
+| 转为数字 | NaN | 0 |
+| 转为布尔 | false | false |
+| == 比较 | null == undefined 为 true | |
+| === 比较 | null === undefined 为 false | |
+| 是否是关键字 | 否（全局变量） | 是 |
+
+```javascript
+// 什么时候是 undefined
+let a;                    // 声明未赋值
+const obj = {};
+console.log(obj.name);    // 访问不存在的属性
+function foo() {}
+console.log(foo());       // 函数没有返回值
+function bar(x) {
+  console.log(x);         // 参数未传递
+}
+bar();
+
+// 什么时候用 null
+let user = null;          // 明确表示"没有用户"
+element.parentNode = null; // 手动断开引用
+const data = fetchData() || null;  // 表示无数据
+
+// 类型转换差异
+Number(undefined)  // NaN
+Number(null)       // 0
+
+// 相等性
+null == undefined   // true
+null === undefined  // false
+null == null        // true
+null === null       // true
+
+// undefined 不是关键字
+function test() {
+  var undefined = 123;  // 可以这样做（不推荐）
+  console.log(undefined);  // 123
+}
+
+// 推荐用 void 0 代替 undefined
+const safeUndefined = void 0;
+
+// 判断方法
+// 判断 null
+value === null
+
+// 判断 undefined
+value === undefined
+typeof value === 'undefined'  // 更安全，避免变量未声明报错
+
+// 判断 null 或 undefined
+value == null  // 利用 == 的特性
+value === null || value === undefined
+```
+
+#### 面试回答模板
+
+> "undefined 和 null 都表示'没有值'，但语义不同。undefined 是 JavaScript 自动赋的默认值，表示变量声明了但还没有值，比如声明未赋值的变量、访问不存在的属性、函数没有返回值等。null 是程序员主动设置的，表示'这里本应该有个值，但现在是空的'，比如表示用户未登录时可以设为 null。
+>
+> 它们还有几个区别：typeof null 返回 'object'，这是个历史 bug；转数字时 undefined 是 NaN，null 是 0；用 == 比较它们是相等的，但 === 不相等。另外 undefined 不是关键字，在函数作用域内可以被重新赋值，所以有时候会用 void 0 来代替 undefined。"
+
+---
+
+### Q3: 如何判断一个变量是否是数组？
+
+#### 一句话答案
+推荐用 Array.isArray()，最准确且能处理跨 iframe 的情况。
+
+#### 详细解答
+
+```javascript
+const arr = [1, 2, 3];
+
+// 方法1: Array.isArray() - 推荐 ✅
+Array.isArray(arr);  // true
+Array.isArray({});   // false
+Array.isArray('abc'); // false
+
+// 方法2: Object.prototype.toString.call() - 准确 ✅
+Object.prototype.toString.call(arr) === '[object Array]';
+
+// 方法3: instanceof - 跨 iframe 有问题 ⚠️
+arr instanceof Array;  // true
+// 但在跨 iframe 时可能为 false
+
+// 方法4: constructor - 可被修改 ⚠️
+arr.constructor === Array;  // true
+// 但 constructor 可以被手动修改
+
+// 方法5: Array.prototype.isPrototypeOf - 可行
+Array.prototype.isPrototypeOf(arr);  // true
+
+// 跨 iframe 问题演示
+const iframe = document.createElement('iframe');
+document.body.appendChild(iframe);
+const iframeArray = window.frames[0].Array;
+const iframeArr = new iframeArray(1, 2, 3);
+
+iframeArr instanceof Array;           // false ❌
+Array.isArray(iframeArr);             // true ✅
+Object.prototype.toString.call(iframeArr);  // '[object Array]' ✅
+
+// 封装通用判断函数
+function isArray(value) {
+  if (Array.isArray) {
+    return Array.isArray(value);
+  }
+  return Object.prototype.toString.call(value) === '[object Array]';
+}
+```
+
+---
+
+### Q4: == 和 === 的区别？
+
+#### 一句话答案
+== 会进行类型转换后比较，=== 不会转换类型，必须类型和值都相等。
+
+#### 详细解答
+
+```javascript
+// === 严格相等，不转换类型
+1 === 1        // true
+1 === '1'      // false - 类型不同
+null === undefined  // false
+
+// == 宽松相等，会转换类型
+1 == '1'       // true - '1' 转为 1
+true == 1      // true - true 转为 1
+null == undefined  // true - 特殊规则
+
+// == 的转换规则
+/*
+1. 类型相同：直接比较
+2. null == undefined: true
+3. 数字 vs 字符串: 字符串转数字
+4. 布尔 vs 其他: 布尔转数字
+5. 对象 vs 基本类型: 对象转原始值（ToPrimitive）
+*/
+
+// 常见陷阱
+'' == false    // true (都转为 0)
+'0' == false   // true (都转为 0)
+[] == false    // true ([] -> '' -> 0)
+[] == ![]      // true ([] -> '' -> 0, ![] -> false -> 0)
+{} == !{}      // false ({} -> NaN, !{} -> false -> 0)
+
+// 建议：始终使用 ===
+const a = '1';
+const b = 1;
+
+// ❌ 不推荐
+if (a == b) { }
+
+// ✅ 推荐
+if (Number(a) === b) { }
+if (a === String(b)) { }
+
+// 唯一可以用 == 的场景：判断 null/undefined
+if (value == null) {
+  // value 是 null 或 undefined
+}
+```
+
+---
+
+### Q5: 0.1 + 0.2 为什么不等于 0.3？如何解决？
+
+#### 一句话答案
+因为 JavaScript 使用 IEEE 754 双精度浮点数，某些十进制小数无法精确表示为二进制，导致精度丢失。
+
+#### 详细解答
+
+```javascript
+console.log(0.1 + 0.2);  // 0.30000000000000004
+console.log(0.1 + 0.2 === 0.3);  // false
+
+// 原因：
+// 0.1 的二进制是无限循环小数
+// 0.1 = 0.00011001100110011...(无限循环)
+// 存储时被截断，导致精度丢失
+
+// 解决方案1：使用 Number.EPSILON
+function equal(a, b) {
+  return Math.abs(a - b) < Number.EPSILON;
+}
+equal(0.1 + 0.2, 0.3);  // true
+
+// 解决方案2：转为整数计算
+function add(a, b) {
+  const precision = Math.max(
+    (String(a).split('.')[1] || '').length,
+    (String(b).split('.')[1] || '').length
+  );
+  const multiplier = Math.pow(10, precision);
+  return (a * multiplier + b * multiplier) / multiplier;
+}
+add(0.1, 0.2);  // 0.3
+
+// 解决方案3：toFixed（注意返回字符串）
+(0.1 + 0.2).toFixed(1);  // '0.3'
+parseFloat((0.1 + 0.2).toFixed(10));  // 0.3
+
+// 解决方案4：使用第三方库
+// decimal.js, bignumber.js, big.js
+
+// 实际应用场景
+// 金额计算：用分而不是元，避免小数
+const priceInCents = 199;  // 1.99 元用 199 分表示
+const total = priceInCents * quantity;
+const displayPrice = (total / 100).toFixed(2);
+```
+
+---
+
+### Q6: 说说 JavaScript 中的隐式类型转换
+
+#### 一句话答案
+隐式类型转换发生在运算和比较时，JavaScript 会自动将操作数转换为需要的类型，主要涉及 ToPrimitive、ToNumber、ToString、ToBoolean 四种转换。
+
+#### 详细解答
+
+```javascript
+// 1. 加法运算中的隐式转换
+// 规则：有字符串则拼接，否则转数字
+1 + '2'       // '12' - 数字转字符串
+'1' + 2       // '12'
+1 + 2         // 3
+true + 1      // 2 - true 转 1
+false + '1'   // 'false1' - 有字符串，false 转 'false'
+[] + 1        // '1' - [] 转 ''
+{} + 1        // 1 或 '[object Object]1'（取决于解析方式）
+[] + []       // '' - 都转空字符串
+[] + {}       // '[object Object]'
+{} + []       // 0 或 '[object Object]'
+
+// 2. 其他算术运算（-、*、/、%）
+// 规则：都转数字
+'6' - 1       // 5
+'6' * '2'     // 12
+'10' / '2'    // 5
+'10' % '3'    // 1
+'abc' - 1     // NaN
+
+// 3. 比较运算
+// 规则：基本都转数字，但字符串比较按字符编码
+'10' > '9'    // false - 字符串比较，'1' < '9'
+'10' > 9      // true - '10' 转为 10
+'a' > 'A'     // true - 比较 ASCII 码
+
+// 4. 逻辑运算中的转换
+// && 和 || 返回原值，不是布尔值
+'hello' && 'world'  // 'world'
+'' && 'world'       // ''
+'hello' || 'world'  // 'hello'
+'' || 'world'       // 'world'
+null || 'default'   // 'default'
+
+// 5. 条件语句中的转换
+if ('0') { }         // 执行 - '0' 是真值
+if ([]) { }          // 执行 - [] 是真值
+if (0) { }           // 不执行
+if ('') { }          // 不执行
+
+// 6. ToPrimitive 转换（对象转原始值）
+const obj = {
+  valueOf() {
+    return 42;
+  },
+  toString() {
+    return 'hello';
+  }
+};
+
+obj + 1      // 43 - 优先调用 valueOf
+`${obj}`     // 'hello' - 字符串场景调用 toString
+
+// 7. 一元运算符
++true        // 1
++'123'       // 123
++[]          // 0 ([] -> '' -> 0)
++{}          // NaN ({} -> '[object Object]' -> NaN)
+![]          // false
+!![]         // true
+```
+
+---
+
+### Q7: Object.is() 和 === 有什么区别？
+
+#### 一句话答案
+Object.is() 修复了 === 的两个特殊情况：NaN 等于 NaN，+0 不等于 -0。
+
+#### 详细解答
+
+```javascript
+// === 的特殊情况
+NaN === NaN      // false ❌
++0 === -0        // true ❌
+
+// Object.is() 的结果
+Object.is(NaN, NaN)   // true ✅
+Object.is(+0, -0)     // false ✅
+
+// 其他情况两者相同
+Object.is(1, 1)       // true
+Object.is('a', 'a')   // true
+Object.is(null, null) // true
+Object.is(undefined, undefined) // true
+Object.is({}, {})     // false - 不同对象
+
+// 手写 Object.is
+function myObjectIs(a, b) {
+  // 处理 +0 和 -0
+  if (a === 0 && b === 0) {
+    return 1 / a === 1 / b;  // Infinity vs -Infinity
+  }
+  // 处理 NaN
+  if (a !== a) {
+    return b !== b;
+  }
+  // 其他情况用 ===
+  return a === b;
+}
+
+// 使用场景
+// 1. 检测 NaN
+Object.is(value, NaN)  // 或用 Number.isNaN(value)
+
+// 2. 区分 +0 和 -0
+Object.is(+0, -0)  // false
+
+// 为什么要区分 +0 和 -0？
+1 / +0   // Infinity
+1 / -0   // -Infinity
+```
+
+---
+
+### Q8: 什么是包装类型？
+
+#### 一句话答案
+包装类型是 JavaScript 为基本类型（Number、String、Boolean）提供的临时对象包装，使得基本类型可以调用方法。
+
+#### 详细解答
+
+```javascript
+// 基本类型调用方法时会临时创建包装对象
+const str = 'hello';
+console.log(str.length);      // 5
+console.log(str.toUpperCase()); // 'HELLO'
+
+// 实际发生了什么？
+// 1. 创建 String 包装对象
+// 2. 调用方法
+// 3. 销毁包装对象
+
+// 等价于：
+const temp = new String('hello');
+console.log(temp.length);
+temp = null;  // 销毁
+
+// 包装类型 vs 基本类型
+const str1 = 'hello';           // 基本类型
+const str2 = new String('hello'); // 包装对象
+
+typeof str1  // 'string'
+typeof str2  // 'object'
+
+str1 === str2  // false
+str1 == str2   // true
+
+// 给基本类型添加属性不会报错，但也没效果
+const s = 'test';
+s.foo = 'bar';
+console.log(s.foo);  // undefined
+
+// 因为每次访问都创建新的包装对象
+
+// Number 和 Boolean 同理
+const num = 123;
+num.toFixed(2);  // '123.00'
+
+const bool = true;
+bool.toString(); // 'true'
+
+// 显式创建包装对象（不推荐）
+const numObj = new Number(123);
+const strObj = new String('abc');
+const boolObj = new Boolean(false);
+
+// 注意：Boolean 包装对象的坑
+if (new Boolean(false)) {
+  console.log('会执行！');  // 对象是真值
+}
+```
+
+---
+
+## 6. 类型转换速查表
+
+### 转换为 Number
+
+| 原始值 | 结果 |
+|--------|------|
+| undefined | NaN |
+| null | 0 |
+| true | 1 |
+| false | 0 |
+| '' | 0 |
+| '123' | 123 |
+| '12.5' | 12.5 |
+| '123abc' | NaN |
+| [] | 0 |
+| [1] | 1 |
+| [1,2] | NaN |
+| {} | NaN |
+| function(){} | NaN |
+
+### 转换为 String
+
+| 原始值 | 结果 |
+|--------|------|
+| undefined | 'undefined' |
+| null | 'null' |
+| true | 'true' |
+| false | 'false' |
+| 123 | '123' |
+| NaN | 'NaN' |
+| Infinity | 'Infinity' |
+| [] | '' |
+| [1,2,3] | '1,2,3' |
+| {} | '[object Object]' |
+| function(){} | 'function(){}' |
+
+### 转换为 Boolean（假值列表）
+
+```javascript
+// 只有以下 8 个值转为 false，其他都是 true
+false
+0
+-0
+0n        // BigInt 零
+''        // 空字符串
+null
+undefined
+NaN
+```
+
+---
+
 ## 总结
 
 ### 核心要点
@@ -475,3 +1009,18 @@ console.log(1 / '2');
 - 了解 V8 引擎中的 Smi 和 HeapNumber
 - 理解 Symbol 和 BigInt 的使用场景
 - 掌握对象转原始类型的完整流程
+
+### 高频考点速记
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   数据类型高频考点                        │
+├─────────────────────────────────────────────────────────┤
+│  typeof vs instanceof ✓✓    null vs undefined ✓✓        │
+│  判断数组方法 ✓              == vs === ✓✓               │
+│  0.1 + 0.2 问题 ✓✓          隐式类型转换 ✓✓             │
+│  Object.is() ✓              包装类型 ✓                  │
+│  假值列表 ✓✓                 类型转换规则 ✓✓             │
+└─────────────────────────────────────────────────────────┘
+✓ 常考  ✓✓ 高频重点
+```

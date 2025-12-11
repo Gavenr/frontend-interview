@@ -133,6 +133,154 @@ first();
 // 4. 全局也没有,报 ReferenceError
 ```
 
+### 词法作用域 vs 动态作用域
+
+```javascript
+// JavaScript 使用词法作用域（静态作用域）
+// 作用域在函数定义时就确定了，而不是调用时
+
+var value = 1;
+
+function foo() {
+  console.log(value);  // 词法作用域：看定义时的位置
+}
+
+function bar() {
+  var value = 2;
+  foo();  // 输出 1，不是 2
+}
+
+bar();
+
+// 词法作用域：foo 定义时，外层是全局作用域，所以 value 是 1
+// 如果是动态作用域（如 Bash）：foo 调用时在 bar 内，value 是 2
+
+// 更复杂的例子
+var x = 10;
+
+function outer() {
+  var x = 20;
+
+  function inner() {
+    console.log(x);  // 20 - 定义时外层的 x
+  }
+
+  return inner;
+}
+
+var fn = outer();
+(function() {
+  var x = 30;
+  fn();  // 输出 20，不是 30
+})();
+```
+
+### 变量提升与暂时性死区
+
+```javascript
+// var 的变量提升
+console.log(a);  // undefined（不是 ReferenceError）
+var a = 1;
+console.log(a);  // 1
+
+// 等价于
+var a;  // 声明提升到顶部
+console.log(a);  // undefined
+a = 1;
+console.log(a);  // 1
+
+// let/const 的暂时性死区（TDZ）
+console.log(b);  // ReferenceError: Cannot access 'b' before initialization
+let b = 2;
+
+// 函数声明也会提升
+foo();  // 可以调用
+
+function foo() {
+  console.log('foo');
+}
+
+// 但函数表达式不会
+bar();  // TypeError: bar is not a function
+
+var bar = function() {
+  console.log('bar');
+};
+
+// TDZ 的详细示例
+let x = 'outer';
+
+function example() {
+  // TDZ 开始
+  console.log(x);  // ReferenceError，不会访问外部的 x
+  // TDZ 结束
+  let x = 'inner';
+}
+
+// typeof 也不安全
+console.log(typeof undeclaredVar);  // 'undefined' - 未声明的变量
+console.log(typeof tdzVar);  // ReferenceError - TDZ 中的变量
+let tdzVar;
+```
+
+### 执行上下文与作用域
+
+```javascript
+/*
+执行上下文（Execution Context）和作用域是相关但不同的概念：
+
+1. 作用域（Scope）
+   - 静态的，代码编写时就确定
+   - 定义变量的可访问范围
+   - 由代码结构决定
+
+2. 执行上下文（Execution Context）
+   - 动态的，代码执行时创建
+   - 包含：变量环境、词法环境、this 绑定
+   - 形成执行上下文栈（调用栈）
+
+3. 词法环境（Lexical Environment）
+   - 存储变量和函数声明
+   - 包含外部环境引用（实现作用域链）
+*/
+
+// 执行上下文栈的演示
+function first() {
+  console.log('first 开始');
+  second();
+  console.log('first 结束');
+}
+
+function second() {
+  console.log('second 开始');
+  third();
+  console.log('second 结束');
+}
+
+function third() {
+  console.log('third');
+}
+
+first();
+/*
+执行上下文栈变化：
+1. [Global]
+2. [Global, first]
+3. [Global, first, second]
+4. [Global, first, second, third]
+5. [Global, first, second]
+6. [Global, first]
+7. [Global]
+
+输出：
+first 开始
+second 开始
+third
+second 结束
+first 结束
+*/
+```
+
 ---
 
 ## 2. 什么是闭包?
@@ -1131,3 +1279,704 @@ console.log(iterator.next());  // { value: 1, done: false }
 - 知道如何避免内存泄漏
 - 理解 V8 中的上下文和作用域链
 - 能手写防抖、节流、柯里化等工具函数
+
+---
+
+## 6. 高级面试题
+
+### 题目4：分析代码输出
+
+```javascript
+var a = 10;
+
+function foo() {
+  console.log(a);
+}
+
+(function() {
+  var a = 20;
+  foo();  // ?
+})();
+```
+
+<details>
+<summary>点击查看答案</summary>
+
+**答案**: 10
+
+**解析**:
+JavaScript 使用词法作用域（静态作用域）。`foo` 函数定义在全局作用域，所以它访问的 `a` 是全局的 `a`（值为 10），而不是 IIFE 内部的 `a`（值为 20）。
+
+作用域在函数**定义时**确定，而不是**调用时**确定。
+
+</details>
+
+### 题目5：实现私有变量
+
+```javascript
+// 使用闭包实现一个类，具有私有变量 name 和 age
+// 提供 getName、getAge、setAge 方法
+// age 只能设置为 0-150 之间的整数
+```
+
+<details>
+<summary>点击查看答案</summary>
+
+```javascript
+function Person(name, age) {
+  // 私有变量
+  let _name = name;
+  let _age = validateAge(age) ? age : 0;
+
+  function validateAge(val) {
+    return Number.isInteger(val) && val >= 0 && val <= 150;
+  }
+
+  // 公开方法
+  this.getName = function() {
+    return _name;
+  };
+
+  this.getAge = function() {
+    return _age;
+  };
+
+  this.setAge = function(newAge) {
+    if (validateAge(newAge)) {
+      _age = newAge;
+      return true;
+    }
+    return false;
+  };
+}
+
+// 测试
+const person = new Person('Alice', 25);
+console.log(person.getName());  // 'Alice'
+console.log(person.getAge());   // 25
+console.log(person._name);      // undefined（无法直接访问）
+console.log(person._age);       // undefined
+
+person.setAge(30);
+console.log(person.getAge());   // 30
+
+person.setAge(-1);
+console.log(person.getAge());   // 30（无效设置被拒绝）
+
+// ES6 WeakMap 实现私有变量
+const privateData = new WeakMap();
+
+class PersonES6 {
+  constructor(name, age) {
+    privateData.set(this, { name, age });
+  }
+
+  getName() {
+    return privateData.get(this).name;
+  }
+
+  getAge() {
+    return privateData.get(this).age;
+  }
+}
+```
+
+</details>
+
+### 题目6：实现 once 函数
+
+```javascript
+// 实现一个 once 函数，让传入的函数只执行一次
+function once(fn) {
+  // 你的代码
+}
+
+const logOnce = once(console.log);
+logOnce('a');  // 'a'
+logOnce('b');  // 无输出
+logOnce('c');  // 无输出
+```
+
+<details>
+<summary>点击查看答案</summary>
+
+```javascript
+// 基础版本
+function once(fn) {
+  let called = false;
+  let result;
+
+  return function(...args) {
+    if (!called) {
+      called = true;
+      result = fn.apply(this, args);
+    }
+    return result;
+  };
+}
+
+// 增强版本：支持重置
+function onceWithReset(fn) {
+  let called = false;
+  let result;
+
+  const onceFn = function(...args) {
+    if (!called) {
+      called = true;
+      result = fn.apply(this, args);
+    }
+    return result;
+  };
+
+  onceFn.reset = function() {
+    called = false;
+    result = undefined;
+  };
+
+  return onceFn;
+}
+
+// 测试
+const init = once(function() {
+  console.log('初始化');
+  return { initialized: true };
+});
+
+console.log(init());  // '初始化' { initialized: true }
+console.log(init());  // { initialized: true }（不再执行，但返回之前的结果）
+```
+
+</details>
+
+### 题目7：实现函数组合 compose
+
+```javascript
+// 实现 compose 函数，从右到左执行函数
+// compose(f, g, h)(x) === f(g(h(x)))
+```
+
+<details>
+<summary>点击查看答案</summary>
+
+```javascript
+// 方式1：reduce
+function compose(...fns) {
+  if (fns.length === 0) return arg => arg;
+  if (fns.length === 1) return fns[0];
+
+  return fns.reduce((a, b) => (...args) => a(b(...args)));
+}
+
+// 方式2：reduceRight
+function compose2(...fns) {
+  return function(initialValue) {
+    return fns.reduceRight((acc, fn) => fn(acc), initialValue);
+  };
+}
+
+// 方式3：递归
+function compose3(...fns) {
+  return function(value) {
+    if (fns.length === 0) return value;
+    const last = fns.pop();
+    return compose3(...fns)(last(value));
+  };
+}
+
+// 测试
+const add10 = x => x + 10;
+const multiply2 = x => x * 2;
+const subtract5 = x => x - 5;
+
+const composed = compose(add10, multiply2, subtract5);
+console.log(composed(10));  // ((10 - 5) * 2) + 10 = 20
+
+// pipe：从左到右执行（compose 的反向）
+function pipe(...fns) {
+  return fns.reduce((a, b) => (...args) => b(a(...args)));
+}
+
+const piped = pipe(subtract5, multiply2, add10);
+console.log(piped(10));  // 20
+```
+
+</details>
+
+### 题目8：分析复杂闭包
+
+```javascript
+function createFunctions() {
+  var result = [];
+
+  for (var i = 0; i < 3; i++) {
+    result[i] = function(num) {
+      return function() {
+        return num;
+      };
+    }(i);
+  }
+
+  return result;
+}
+
+var funcs = createFunctions();
+console.log(funcs[0]());  // ?
+console.log(funcs[1]());  // ?
+console.log(funcs[2]());  // ?
+```
+
+<details>
+<summary>点击查看答案</summary>
+
+**答案**:
+```
+0
+1
+2
+```
+
+**解析**:
+这里使用了 IIFE（立即调用函数表达式）来创建闭包。每次循环时，`i` 的值作为参数 `num` 传入外层函数并立即执行，返回的内部函数保存了那个时刻的 `num` 值。
+
+关键点：
+- `function(num) { return function() { return num; }; }(i)`
+- 外层函数立即执行，`i` 的值被保存到 `num` 参数中
+- 返回的内部函数形成闭包，保存了 `num` 的值
+
+如果没有 IIFE：
+```javascript
+for (var i = 0; i < 3; i++) {
+  result[i] = function() {
+    return i;  // 共享同一个 i
+  };
+}
+// 全部输出 3
+```
+
+</details>
+
+### 题目9：实现 bind 函数
+
+```javascript
+// 手写实现 Function.prototype.bind
+```
+
+<details>
+<summary>点击查看答案</summary>
+
+```javascript
+Function.prototype.myBind = function(context, ...args) {
+  if (typeof this !== 'function') {
+    throw new TypeError('Bind must be called on a function');
+  }
+
+  const self = this;
+
+  const fBound = function(...innerArgs) {
+    // 处理 new 调用的情况
+    // 如果是 new 调用，this 指向新创建的对象
+    return self.apply(
+      this instanceof fBound ? this : context,
+      [...args, ...innerArgs]
+    );
+  };
+
+  // 维护原型链
+  if (this.prototype) {
+    fBound.prototype = Object.create(this.prototype);
+  }
+
+  return fBound;
+};
+
+// 测试
+function greet(greeting, punctuation) {
+  return `${greeting}, ${this.name}${punctuation}`;
+}
+
+const person = { name: 'Alice' };
+const boundGreet = greet.myBind(person, 'Hello');
+
+console.log(boundGreet('!'));  // 'Hello, Alice!'
+
+// 测试 new 调用
+function Animal(name) {
+  this.name = name;
+}
+Animal.prototype.speak = function() {
+  return `${this.name} makes a sound`;
+};
+
+const BoundAnimal = Animal.myBind(null, 'Dog');
+const dog = new BoundAnimal();
+console.log(dog.name);        // 'Dog'
+console.log(dog.speak());     // 'Dog makes a sound'
+console.log(dog instanceof Animal);  // true
+```
+
+</details>
+
+### 题目10：实现 sleep 函数
+
+```javascript
+// 实现一个 sleep 函数，使得 await sleep(1000) 后暂停 1 秒
+```
+
+<details>
+<summary>点击查看答案</summary>
+
+```javascript
+// 基础版本
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 使用
+async function demo() {
+  console.log('开始');
+  await sleep(1000);
+  console.log('1秒后');
+}
+
+// 带返回值的版本
+function sleepWithValue(ms, value) {
+  return new Promise(resolve => setTimeout(() => resolve(value), ms));
+}
+
+async function demo2() {
+  const result = await sleepWithValue(1000, 'done');
+  console.log(result);  // 'done'
+}
+
+// 可取消的版本
+function cancellableSleep(ms) {
+  let timeoutId;
+  let rejectFn;
+
+  const promise = new Promise((resolve, reject) => {
+    rejectFn = reject;
+    timeoutId = setTimeout(resolve, ms);
+  });
+
+  promise.cancel = function() {
+    clearTimeout(timeoutId);
+    rejectFn(new Error('Sleep cancelled'));
+  };
+
+  return promise;
+}
+
+async function demo3() {
+  const sleepPromise = cancellableSleep(5000);
+
+  setTimeout(() => {
+    sleepPromise.cancel();
+  }, 1000);
+
+  try {
+    await sleepPromise;
+    console.log('完成');
+  } catch (e) {
+    console.log(e.message);  // 'Sleep cancelled'
+  }
+}
+```
+
+</details>
+
+---
+
+## 7. V8 引擎中的闭包
+
+### 闭包的内存模型
+
+```javascript
+/*
+V8 引擎如何处理闭包：
+
+1. 作用域分析（Scope Analysis）
+   - 编译阶段分析哪些变量被内部函数引用
+   - 被引用的变量会被标记为"上下文变量"
+
+2. 上下文对象（Context Object）
+   - 闭包变量存储在堆上的 Context 对象中
+   - 不是存储在栈上（栈上的会被销毁）
+
+3. 内存布局
+   - 普通局部变量：栈上分配
+   - 闭包变量：堆上的 Context 对象
+
+4. 垃圾回收
+   - 当闭包函数不再被引用时
+   - Context 对象才能被垃圾回收
+*/
+
+function createClosure() {
+  let a = 1;        // 被内部函数引用 → 堆上的 Context
+  let b = [1,2,3];  // 被内部函数引用 → 堆上的 Context
+  let c = 'temp';   // 未被引用 → 栈上，函数返回后销毁
+
+  return function() {
+    console.log(a, b);  // a 和 b 被引用
+  };
+}
+
+const closure = createClosure();
+// c 已被销毁
+// a 和 b 保存在 Context 对象中
+```
+
+### Chrome DevTools 查看闭包
+
+```javascript
+function outer() {
+  const name = 'closure variable';
+
+  return function inner() {
+    console.log(name);
+  };
+}
+
+const fn = outer();
+
+// 在 Chrome DevTools 中：
+// 1. 打断点在 inner 函数内
+// 2. 查看 Scope 面板
+// 3. 可以看到 Closure 作用域
+// 4. 里面包含 name 变量
+
+// 或者直接打印函数
+console.dir(fn);
+// [[Scopes]] 属性中可以看到闭包信息
+```
+
+### 闭包优化建议
+
+```javascript
+// 1. 避免在闭包中引用不需要的大对象
+// ❌ 不好
+function createHandler() {
+  const largeData = new Array(1000000).fill('x');
+
+  return function handler() {
+    // 只用了 length，但整个数组都被保留
+    return largeData.length;
+  };
+}
+
+// ✅ 好
+function createHandler() {
+  const largeData = new Array(1000000).fill('x');
+  const length = largeData.length;  // 只保存需要的
+
+  return function handler() {
+    return length;
+  };
+}
+
+// 2. 及时解除闭包引用
+let cached = (function() {
+  const data = computeExpensiveData();
+  return {
+    getData: () => data,
+    clear: function() {
+      // 提供清理方法
+    }
+  };
+})();
+
+// 不再需要时
+cached = null;
+
+// 3. 考虑使用 WeakMap 存储私有数据
+const privateStore = new WeakMap();
+
+class MyClass {
+  constructor(secret) {
+    privateStore.set(this, { secret });
+  }
+
+  getSecret() {
+    return privateStore.get(this).secret;
+  }
+}
+
+// 实例被回收时，privateStore 中对应的数据也会被回收
+
+// 4. 使用 WeakRef 和 FinalizationRegistry（ES2021）
+const registry = new FinalizationRegistry((heldValue) => {
+  console.log(`${heldValue} 被垃圾回收了`);
+});
+
+function createCached(key, data) {
+  const obj = { data };
+  registry.register(obj, key);
+  return new WeakRef(obj);
+}
+
+const weakRef = createCached('myData', { value: 42 });
+
+// 稍后检查对象是否还存在
+const obj = weakRef.deref();
+if (obj) {
+  console.log(obj.data);
+} else {
+  console.log('对象已被回收');
+}
+```
+
+---
+
+## 8. 实战应用
+
+### React 中的闭包陷阱
+
+```javascript
+// React Hooks 中常见的闭包问题
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  // ❌ 闭包陷阱：count 是旧值
+  useEffect(() => {
+    const timer = setInterval(() => {
+      console.log('当前 count:', count);  // 始终是 0
+      setCount(count + 1);  // 始终设置为 1
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);  // 空依赖数组，只在挂载时执行
+
+  // ✅ 解决方案1：使用函数式更新
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCount(prevCount => prevCount + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // ✅ 解决方案2：使用 ref
+  const countRef = useRef(count);
+  countRef.current = count;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      console.log('当前 count:', countRef.current);  // 正确的值
+      setCount(countRef.current + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // ✅ 解决方案3：正确设置依赖
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCount(count + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [count]);  // count 变化时重新创建定时器
+
+  return <div>{count}</div>;
+}
+```
+
+### 事件处理器的闭包
+
+```javascript
+// ❌ 内存泄漏风险
+function setupListeners() {
+  const heavyData = loadHeavyData();
+
+  document.getElementById('btn').addEventListener('click', function() {
+    // heavyData 被闭包捕获，永远不会释放
+    console.log(heavyData.length);
+  });
+}
+
+// ✅ 提供清理机制
+function setupListeners() {
+  const heavyData = loadHeavyData();
+
+  const handler = function() {
+    console.log(heavyData.length);
+  };
+
+  document.getElementById('btn').addEventListener('click', handler);
+
+  // 返回清理函数
+  return function cleanup() {
+    document.getElementById('btn').removeEventListener('click', handler);
+  };
+}
+
+const cleanup = setupListeners();
+// 不需要时
+cleanup();
+
+// ✅ 使用 AbortController（现代方式）
+function setupListeners() {
+  const controller = new AbortController();
+  const heavyData = loadHeavyData();
+
+  document.getElementById('btn').addEventListener('click', function() {
+    console.log(heavyData.length);
+  }, { signal: controller.signal });
+
+  return () => controller.abort();
+}
+```
+
+### 请求缓存
+
+```javascript
+// 使用闭包实现请求缓存
+function createRequestCache() {
+  const cache = new Map();
+  const pending = new Map();
+
+  return async function cachedRequest(url, options = {}) {
+    const cacheKey = `${url}_${JSON.stringify(options)}`;
+
+    // 检查缓存
+    if (cache.has(cacheKey)) {
+      const cached = cache.get(cacheKey);
+      if (Date.now() - cached.timestamp < (options.maxAge || 60000)) {
+        return cached.data;
+      }
+      cache.delete(cacheKey);
+    }
+
+    // 检查是否有正在进行的相同请求
+    if (pending.has(cacheKey)) {
+      return pending.get(cacheKey);
+    }
+
+    // 发起请求
+    const requestPromise = fetch(url, options)
+      .then(res => res.json())
+      .then(data => {
+        cache.set(cacheKey, { data, timestamp: Date.now() });
+        pending.delete(cacheKey);
+        return data;
+      })
+      .catch(err => {
+        pending.delete(cacheKey);
+        throw err;
+      });
+
+    pending.set(cacheKey, requestPromise);
+    return requestPromise;
+  };
+}
+
+const cachedFetch = createRequestCache();
+
+// 使用
+async function loadData() {
+  // 相同 URL 的请求会被缓存
+  const data1 = await cachedFetch('/api/users');
+  const data2 = await cachedFetch('/api/users');  // 从缓存获取
+}
+```
