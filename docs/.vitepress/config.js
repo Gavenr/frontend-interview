@@ -184,7 +184,8 @@ export default defineConfig({
             { text: '大文件上传', link: '/scenarios/file-upload' },
             { text: '虚拟列表与无限滚动', link: '/scenarios/virtual-list' },
             { text: '搜索建议', link: '/scenarios/search-autocomplete' },
-            { text: '拖拽排序', link: '/scenarios/drag-sort' }
+            { text: '拖拽排序', link: '/scenarios/drag-sort' },
+            { text: '请求重试机制', link: '/scenarios/request-retry' }
           ]
         }
       ],
