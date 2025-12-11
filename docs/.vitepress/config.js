@@ -181,7 +181,10 @@ export default defineConfig({
             { text: '系统设计', link: '/scenarios/system-design' },
             { text: '问题排查', link: '/scenarios/debugging' },
             { text: '架构设计', link: '/scenarios/architecture' },
-            { text: '大文件上传', link: '/scenarios/file-upload' }
+            { text: '大文件上传', link: '/scenarios/file-upload' },
+            { text: '虚拟列表与无限滚动', link: '/scenarios/virtual-list' },
+            { text: '搜索建议', link: '/scenarios/search-autocomplete' },
+            { text: '拖拽排序', link: '/scenarios/drag-sort' }
           ]
         }
       ],
