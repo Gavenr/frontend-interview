@@ -603,3 +603,148 @@ list.push(newItem); // 这种情况 index 影响较小
 第三是会影响过渡动画，因为 Vue 无法正确追踪元素的移动。
 
 所以正确做法是使用数据的唯一标识，比如后端返回的 id。只有在静态列表、纯展示的场景下，才可以考虑用 index，但一般不建议这么做。"
+
+---
+
+### 6. 虚拟 DOM vs 无虚拟 DOM 框架（Solid.js、Vue Vapor）
+
+**一句话答案：**
+无虚拟 DOM 框架直接操作真实 DOM，省去了 Diff 开销，在细粒度更新场景下性能更好，但失去了跨平台能力和某些优化机会。
+
+**详细解答：**
+
+**什么是无虚拟 DOM 框架？**
+
+```javascript
+// 虚拟 DOM 框架（React/Vue）的更新流程
+数据变化 → 生成新虚拟 DOM → Diff 对比 → 更新真实 DOM
+
+// 无虚拟 DOM 框架（Solid/Svelte/Vue Vapor）的更新流程
+数据变化 → 直接更新真实 DOM（编译时确定依赖关系）
+```
+
+**代表框架对比：**
+
+| 框架 | 类型 | 更新策略 | 特点 |
+|------|------|---------|------|
+| React | 虚拟 DOM | 运行时 Diff | 灵活、生态好 |
+| Vue 3 | 虚拟 DOM | 运行时 Diff + 编译优化 | 平衡性能和灵活性 |
+| Solid.js | 无虚拟 DOM | 编译时细粒度响应式 | 性能极致 |
+| Svelte | 无虚拟 DOM | 编译时生成命令式代码 | 无运行时、包体小 |
+| Vue Vapor | 无虚拟 DOM | 编译时（实验性） | Vue 的无虚拟 DOM 模式 |
+
+**Solid.js 示例：**
+
+```jsx
+// Solid.js - 编译时确定依赖，直接更新 DOM
+import { createSignal } from 'solid-js';
+
+function Counter() {
+  const [count, setCount] = createSignal(0);
+
+  // 编译后，只有用到 count() 的 DOM 节点会更新
+  // 不需要虚拟 DOM Diff
+  return (
+    <div>
+      <p>Count: {count()}</p>  {/* 只有这个 p 会更新 */}
+      <p>Static text</p>        {/* 不会重新执行 */}
+      <button onClick={() => setCount(count() + 1)}>+1</button>
+    </div>
+  );
+}
+
+// Solid 编译后类似于：
+function Counter() {
+  const [count, setCount] = createSignal(0);
+  const p = document.createElement('p');
+
+  // 直接建立 count 和 p.textContent 的响应关系
+  createEffect(() => {
+    p.textContent = `Count: ${count()}`;
+  });
+
+  // ...
+}
+```
+
+**Vue Vapor 模式（实验性）：**
+
+```vue
+<!-- Vue 3.5+ Vapor 模式 -->
+<script setup vapor>
+import { ref } from 'vue'
+const count = ref(0)
+</script>
+
+<template>
+  <button @click="count++">{{ count }}</button>
+</template>
+
+<!-- 编译后直接操作 DOM，不经过虚拟 DOM -->
+```
+
+**性能对比：**
+
+```javascript
+// 场景 1：大量数据更新（虚拟 DOM 优势）
+// 虚拟 DOM 可以批量对比，一次性更新
+// 无虚拟 DOM 可能产生多次 DOM 操作
+
+// 场景 2：细粒度更新（无虚拟 DOM 优势）
+// 只改一个字段，虚拟 DOM 仍需遍历对比
+// 无虚拟 DOM 直接定位到具体 DOM 节点
+
+// 实际性能测试（JS Framework Benchmark）
+// 创建 10000 行：Solid > Vue > React
+// 部分更新：Solid >> Vue > React
+// 交换行：Solid > Vue ≈ React
+```
+
+**优缺点对比：**
+
+| 特性 | 虚拟 DOM | 无虚拟 DOM |
+|------|---------|-----------|
+| 运行时开销 | 有（Diff 计算） | 几乎没有 |
+| 包体积 | 较大（运行时库） | 较小 |
+| 跨平台 | 容易实现 | 困难 |
+| SSR 实现 | 简单 | 需要额外处理 |
+| 调试体验 | 虚拟 DOM 可审查 | 依赖编译产物 |
+| 生态成熟度 | 成熟 | 相对较新 |
+| 心智模型 | 组件整体渲染 | 细粒度依赖追踪 |
+
+**为什么 Vue 还要保留虚拟 DOM？**
+
+```javascript
+// 1. 跨平台渲染能力
+// Vue 可以渲染到 Web、Native、小程序等
+// 无虚拟 DOM 很难实现
+
+// 2. 渲染函数的灵活性
+const MyComponent = {
+  render() {
+    // 动态构建 VNode，需要虚拟 DOM 支持
+    return h('div', this.items.map(item =>
+      h('span', { key: item.id }, item.name)
+    ));
+  }
+};
+
+// 3. 第三方库兼容性
+// UI 库通常依赖虚拟 DOM API
+
+// 4. Vue Vapor 是可选模式
+// 性能敏感场景可以选择 Vapor
+// 需要灵活性的场景继续用虚拟 DOM
+```
+
+**面试口语化回答模板：**
+
+"虚拟 DOM 和无虚拟 DOM 框架的核心区别在于更新策略。
+
+虚拟 DOM 框架像 React 和 Vue，是在运行时生成虚拟 DOM 树，然后通过 Diff 算法找出差异再更新。这样做的好处是灵活、容易实现跨平台，但 Diff 本身有开销。
+
+无虚拟 DOM 框架像 Solid 和 Svelte，是在编译时就确定了数据和 DOM 的依赖关系，数据变化时直接精确更新对应的 DOM 节点，不需要 Diff。性能更好，包体积更小。
+
+但无虚拟 DOM 也有局限：很难实现跨平台渲染，而且对于高度动态的 UI 场景，编译时很难确定所有依赖关系。
+
+Vue 3.5 推出了实验性的 Vapor 模式，让开发者可以选择。我觉得未来可能是混合方案，在需要极致性能的场景用无虚拟 DOM，需要灵活性的场景用虚拟 DOM。"

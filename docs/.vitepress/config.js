@@ -133,7 +133,8 @@ export default defineConfig({
             { text: 'Babel', link: '/engineering/babel' },
             { text: 'CI/CD', link: '/engineering/cicd' },
             { text: 'Monorepo', link: '/engineering/monorepo' },
-            { text: '代码规范', link: '/engineering/code-style' }
+            { text: '代码规范', link: '/engineering/code-style' },
+            { text: '浏览器兼容性', link: '/engineering/compatibility' }
           ]
         }
       ],
@@ -196,7 +197,9 @@ export default defineConfig({
             { text: '虚拟列表与无限滚动', link: '/scenarios/virtual-list' },
             { text: '搜索建议', link: '/scenarios/search-autocomplete' },
             { text: '拖拽排序', link: '/scenarios/drag-sort' },
-            { text: '请求重试机制', link: '/scenarios/request-retry' }
+            { text: '请求重试机制', link: '/scenarios/request-retry' },
+            { text: 'HTTP 请求封装', link: '/scenarios/http-client' },
+            { text: '高频场景题', link: '/scenarios/common-questions' }
           ]
         }
       ],
@@ -251,6 +254,7 @@ export default defineConfig({
             { text: 'Grid 布局', link: '/css/grid' },
             { text: '居中方案', link: '/css/center' },
             { text: '响应式设计', link: '/css/responsive' },
+            { text: '主题切换', link: '/css/theme' },
             { text: '原子化 CSS', link: '/css/atomic-css' }
           ]
         }
