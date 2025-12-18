@@ -261,7 +261,8 @@ export default defineConfig({
             { text: '数据结构', link: '/algorithm/data-structure' },
             { text: '常见算法', link: '/algorithm/common' },
             { text: '高频算法详解', link: '/algorithm/advanced' },
-            { text: '前端算法题', link: '/algorithm/frontend' }
+            { text: '前端算法题', link: '/algorithm/frontend' },
+            { text: '面试高频题精选', link: '/algorithm/interview-hot' }
           ]
         }
       ],
