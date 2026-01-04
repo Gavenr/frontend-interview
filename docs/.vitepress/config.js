@@ -4,9 +4,9 @@ export default defineConfig({
   title: '前端面试宝典',
   description: '前端工程师面试知识体系',
   lang: 'zh-CN',
-  base: '/frontend-interview/',  // 改为你的仓库名
+  base: process.env.VITE_BASE_PATH || '/',  // Vercel 使用根路径，GitHub Pages 使用子路径
   head: [
-    ['link', { rel: 'icon', href: '/frontend-interview/favicon.png' }]
+    ['link', { rel: 'icon', href: `${process.env.VITE_BASE_PATH || '/'}/favicon.png`.replace(/\/+/g, '/') }]
   ],
 
   themeConfig: {
