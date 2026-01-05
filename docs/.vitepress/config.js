@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
-  title: '前端面试宝典',
-  description: '前端工程师面试知识体系',
+  title: '前端知识库',
+  description: '系统化的前端开发知识整理',
   lang: 'zh-CN',
   base: process.env.VITE_BASE_PATH || '/',  // Vercel 使用根路径，GitHub Pages 使用子路径
   head: [
