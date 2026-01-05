@@ -60,6 +60,7 @@ export default defineConfig({
           items: [
             { text: 'Vue 核心原理', link: '/vue/' },
             { text: '响应式原理', link: '/vue/reactivity' },
+            { text: '双向数据绑定', link: '/vue/v-model' },
             { text: '虚拟 DOM 与 Diff', link: '/vue/virtual-dom' },
             { text: '组件通信', link: '/vue/communication' },
             { text: '生命周期', link: '/vue/lifecycle' },
@@ -210,6 +211,12 @@ export default defineConfig({
             { text: '入门与学习路径', link: '/ai/agent/learning-path' },
             { text: '技术栈与框架', link: '/ai/agent/tech-stack' },
             { text: '实战案例', link: '/ai/agent/practice' }
+          ]
+        },
+        {
+          text: 'AI 实战项目',
+          items: [
+            { text: 'AI 音乐生成项目', link: '/ai/ai-music-project-plan' }
           ]
         }
       ],
